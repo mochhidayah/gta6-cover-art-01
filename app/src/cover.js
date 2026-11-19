@@ -258,10 +258,10 @@ export function drawCover(canvas, state, w, h) {
   ctx.lineWidth = Math.max(1, base * 0.002);
   ctx.strokeRect(base * 0.028, base * 0.028, w - base * 0.056, h - base * 0.056);
 
-  // 5. Sun emblem above the title block.
+  // 5. Sun emblem above the title block, clear of the kicker line.
   const titleY = (state.titleY ?? 0.74) * h;
-  const sunR = base * 0.045;
-  paintSun(ctx, w / 2, titleY - base * 0.16, sunR, colors.accent);
+  const sunR = base * 0.038;
+  paintSun(ctx, w / 2, titleY - base * 0.23, sunR, colors.accent);
 
   // 6. Kicker, title, tagline — all centred, stacked above the title line.
   const family = "'Arial Black', 'Archivo Black', Impact, 'Helvetica Neue', Arial, sans-serif";

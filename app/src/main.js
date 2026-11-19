@@ -50,8 +50,11 @@ function currentSize() {
 
 function render() {
   const size = currentSize();
-  // The preview keeps the export aspect but caps at 640px on its long side.
-  const scale = Math.min(1, 640 / Math.max(size.w, size.h));
+  // The preview keeps the export aspect but caps at 640px on its long side —
+  // except in cover-shot mode, where it fills the viewport and renders at
+  // full resolution so the screenshot is sharp.
+  const shotCover = document.body.classList.contains('shot-cover');
+  const scale = shotCover ? 1 : Math.min(1, 640 / Math.max(size.w, size.h));
   drawCover(preview, state, Math.round(size.w * scale), Math.round(size.h * scale));
   preview.dataset.w = String(Math.round(size.w * scale));
   preview.dataset.h = String(Math.round(size.h * scale));
@@ -121,6 +124,21 @@ async function loadSampleIntoAll(name) {
   }
 }
 
+/** Load a different sample into each panel, in order — a real multi-panel
+ *  poster wants variety, not the same photo three times. */
+async function loadSamplesAcross(names) {
+  try {
+    const imgs = await Promise.all(names.map((n) => loadImage(SAMPLES[n].src)));
+    for (let i = 0; i < panelCount(); i++) {
+      state.panels[i] = { img: imgs[i % imgs.length], src: names[i % names.length], panX: 0, panY: 0, zoom: 1 };
+    }
+    render();
+    setStatus(`Panels ← ${names.join(' / ')}`);
+  } catch (e) {
+    setStatus(`Sample failed to load: ${e.message}`);
+  }
+}
+
 function onUpload(file) {
   if (!file || !file.type.startsWith('image/')) {
     setStatus('That file is not an image.');
@@ -177,6 +195,50 @@ function buildButtons(container, entries, current, onPick) {
   }
 }
 
+function pickLayout(key) {
+  state.layout = key;
+  state.activePanel = Math.min(state.activePanel, panelCount() - 1);
+  render();
+  setStatus(`Layout: ${LAYOUTS[key].label}`);
+}
+
+function pickGrade(key) {
+  state.grade = key;
+  render();
+  setStatus(`Grade: ${GRADES[key].label}`);
+}
+
+function pickColor(key) {
+  state.titleColor = key;
+  render();
+}
+
+function pickSize(key) {
+  state.sizeKey = key;
+  render();
+  setStatus(`Export size: ${EXPORT_SIZES[key].label}`);
+}
+
+/** Rebuild every control from the current state (used at boot and after a
+ *  shuffle, so the chips and inputs never disagree with what is painted). */
+function syncControls() {
+  buildButtons('layout-pick', LAYOUTS, state.layout, pickLayout);
+  buildButtons('grade-pick', GRADES, state.grade, pickGrade);
+  const colorEntries = {};
+  for (const [k] of Object.entries(TITLE_COLORS)) colorEntries[k] = { label: k[0].toUpperCase() + k.slice(1) };
+  buildButtons('color-pick', colorEntries, state.titleColor, pickColor);
+  const sizeEntries = {};
+  for (const [k, v] of Object.entries(EXPORT_SIZES)) sizeEntries[k] = v;
+  buildButtons('size-pick', sizeEntries, state.sizeKey, pickSize);
+  $('title').value = state.title;
+  $('subtitle').value = state.subtitle;
+  $('tagline').value = state.tagline;
+  $('title-size').value = String(state.titleSize);
+  $('title-size-val').textContent = `${state.titleSize.toFixed(2)}×`;
+  $('title-y').value = String(state.titleY);
+  $('title-y-val').textContent = `${Math.round(state.titleY * 100)}%`;
+}
+
 function wireControls() {
   // Samples.
   $('sample-pier').addEventListener('click', () => loadSample('pier'));
@@ -186,28 +248,9 @@ function wireControls() {
   $('upload').addEventListener('change', (e) => onUpload(e.target.files[0]));
   $('upload-btn').addEventListener('click', () => $('upload').click());
 
-  // Layout.
-  buildButtons('layout-pick', LAYOUTS, state.layout, (key) => {
-    state.layout = key;
-    state.activePanel = Math.min(state.activePanel, panelCount() - 1);
-    render();
-    setStatus(`Layout: ${LAYOUTS[key].label}`);
-  });
-
-  // Grade.
-  buildButtons('grade-pick', GRADES, state.grade, (key) => {
-    state.grade = key;
-    render();
-    setStatus(`Grade: ${GRADES[key].label}`);
-  });
-
-  // Title colour.
-  const colorEntries = {};
-  for (const [k, v] of Object.entries(TITLE_COLORS)) colorEntries[k] = { label: k[0].toUpperCase() + k.slice(1) };
-  buildButtons('color-pick', colorEntries, state.titleColor, (key) => {
-    state.titleColor = key;
-    render();
-  });
+  // Layout, grade, colour and export size are rebuilt from state by
+  // syncControls() so the chips always match what is painted.
+  syncControls();
 
   // Caption.
   $('title').addEventListener('input', (e) => { state.title = e.target.value; render(); });
@@ -236,14 +279,7 @@ function wireControls() {
     setStatus(`Panel ${state.activePanel + 1} position reset.`);
   });
 
-  // Export size + button.
-  const sizeEntries = {};
-  for (const [k, v] of Object.entries(EXPORT_SIZES)) sizeEntries[k] = v;
-  buildButtons('size-pick', sizeEntries, state.sizeKey, (key) => {
-    state.sizeKey = key;
-    render();
-    setStatus(`Export size: ${EXPORT_SIZES[key].label}`);
-  });
+  // Export size + button are rebuilt from state by syncControls().
   $('export').addEventListener('click', exportPNG);
   $('shuffle').addEventListener('click', () => {
     // One click, a finished cover: random layout + grade, samples in all panels.
@@ -252,9 +288,8 @@ function wireControls() {
     state.layout = layouts[Math.floor(Math.random() * layouts.length)];
     state.grade = grades[Math.floor(Math.random() * grades.length)];
     state.activePanel = 0;
+    syncControls();
     loadSampleIntoAll(Math.random() < 0.5 ? 'pier' : 'boulevard');
-    buildButtons('layout-pick', LAYOUTS, state.layout, () => {});
-    buildButtons('grade-pick', GRADES, state.grade, () => {});
     setStatus('Shuffled a fresh cover — tweak it or export it.');
   });
 
@@ -295,9 +330,17 @@ async function boot() {
   wireControls();
   // Shot mode (screenshots / deep links) may preset photo + caption first.
   const shot = applyShotParams(state);
+  syncControls();
   render();
   if (shot.photo) {
-    await loadSampleIntoAll(shot.photo);
+    if (shot.coverOnly) {
+      // A cover shot shows the poster, not the editor: alternate the two
+      // samples across the panels so the triptych reads as three moments.
+      const other = shot.photo === 'pier' ? 'boulevard' : 'pier';
+      await loadSamplesAcross([shot.photo, other, shot.photo]);
+    } else {
+      await loadSampleIntoAll(shot.photo);
+    }
   } else {
     // Default first paint: pier in every panel so the editor never opens blank.
     await loadSampleIntoAll('pier');
