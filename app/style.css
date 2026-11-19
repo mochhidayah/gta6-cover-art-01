@@ -1,12 +1,214 @@
-html, body { margin: 0; height: 100%; background: #f2f0f4; color: #1d1b22; font: 15px/1.4 system-ui, sans-serif; }
-.app { display: flex; gap: 32px; align-items: center; justify-content: center; height: 100%; padding: 24px; box-sizing: border-box; }
-.controls { display: flex; flex-direction: column; gap: 14px; width: 280px; }
-.controls h1 { margin: 0; font-size: 28px; }
-.controls p { margin: 0; color: #5c5866; }
-label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
-input[type=text] { font: inherit; padding: 8px; border: 1px solid #c9c4d1; border-radius: 6px; }
-button { font: inherit; font-weight: 700; padding: 10px; border: 0; border-radius: 6px; background: #1d1b22; color: #fff; cursor: pointer; }
-canvas { width: min(70vh, 60vw); height: min(70vh, 60vw); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2); }
-body.shot-cover .controls { display: none; }
-body.shot-cover .app { padding: 0; }
-body.shot-cover canvas { width: 100vw; height: 100vh; box-shadow: none; }
+/* Leonida Cover Lab — editor styling. Dark dusk UI, sunset accents, no
+   web fonts and no images: every colour and shape is plain CSS. */
+
+:root {
+  --ink: #f4ecf6;
+  --ink-dim: #b9a8c2;
+  --bg: #12081a;
+  --panel: #1e0f2a;
+  --panel-2: #2a1539;
+  --line: #3d2350;
+  --sun: #ffb347;
+  --sun-2: #ff5e7a;
+  --sea: #39d5c0;
+  --focus: #ffd166;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: linear-gradient(180deg, #1a0b26 0%, var(--bg) 55%, #0a0512 100%);
+  color: var(--ink);
+  font: 15px/1.5 "Helvetica Neue", Arial, sans-serif;
+  min-height: 100vh;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 18px;
+  padding: 18px 24px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand { display: flex; align-items: center; gap: 10px; }
+
+.brand h1 {
+  margin: 0;
+  font: 900 22px/1 "Arial Black", Impact, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.04em;
+  background: linear-gradient(90deg, var(--sun), var(--sun-2) 60%, var(--sea));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.sun-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, #ffe9a8 0%, var(--sun) 55%, var(--sun-2) 100%);
+  box-shadow: 0 0 14px rgba(255, 179, 71, 0.8);
+  flex: none;
+}
+
+.tag { margin: 0; color: var(--ink-dim); font-size: 13px; }
+
+.studio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 20px;
+  padding: 20px 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.preview-wrap { min-width: 0; }
+
+#preview {
+  display: block;
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #160a1e;
+  cursor: grab;
+  touch-action: none;
+}
+
+#preview:active { cursor: grabbing; }
+
+.hint { text-align: center; color: var(--ink-dim); font-size: 12px; margin: 10px 0 0; }
+
+.controls { display: flex; flex-direction: column; gap: 14px; }
+
+.group {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.group h2 {
+  margin: 0 0 10px;
+  font: 800 13px/1 "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sun);
+}
+
+.row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.row:last-child { margin-bottom: 0; }
+
+.chip {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 7px 13px;
+  font: 600 13px/1 "Helvetica Neue", Arial, sans-serif;
+  cursor: pointer;
+}
+
+.chip:hover { border-color: var(--sun); }
+
+.chip.on {
+  background: var(--sun);
+  border-color: var(--sun);
+  color: #241028;
+}
+
+.chip.wide { flex: 1; }
+
+.tab.on { background: var(--sea); border-color: var(--sea); color: #08211d; }
+
+.cta {
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  padding: 11px 22px;
+  font: 800 15px/1 "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.03em;
+  color: #241028;
+  background: linear-gradient(90deg, var(--sun), var(--sun-2));
+  cursor: pointer;
+}
+
+.cta:hover { filter: brightness(1.1); }
+
+.field, .slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+.field input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  background: #160a1e;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  padding: 8px 10px;
+  font: 14px/1.2 "Helvetica Neue", Arial, sans-serif;
+}
+
+.field input[type="text"]:focus,
+.chip:focus-visible, .cta:focus-visible,
+input[type="range"]:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.slider input[type="range"] { flex: 1; accent-color: var(--sun); }
+.slider span { min-width: 44px; text-align: right; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.note { margin: 4px 0 0; color: var(--ink-dim); font-size: 12px; }
+
+.foot {
+  padding: 8px 24px 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+#status { margin: 0 0 6px; color: var(--sea); font-size: 13px; }
+.fine { margin: 0; color: var(--ink-dim); font-size: 11px; }
+
+/* Shot mode: the cover fills the viewport, the editor chrome is gone. */
+body.shot-cover .top,
+body.shot-cover .controls,
+body.shot-cover .hint,
+body.shot-cover .foot { display: none; }
+
+body.shot-cover { background: #160a1e; }
+
+body.shot-cover .studio {
+  display: block;
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}
+
+body.shot-cover .preview-wrap { width: 100vw; height: 100vh; }
+
+body.shot-cover #preview {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  border: none;
+  border-radius: 0;
+  object-fit: contain;
+}
+
+@media (max-width: 900px) {
+  .studio { grid-template-columns: 1fr; }
+}
